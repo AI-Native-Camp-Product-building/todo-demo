@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Callable Todo</title>
+<style>
+  @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Pretendard', sans-serif; background: #1C1917; color: #F9F7F4; padding: 2rem; max-width: 720px; margin: 0 auto; }
+  h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+  .subtitle { color: #78716C; font-size: 0.9rem; margin-bottom: 2rem; }
+
+  .section { background: #292524; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
+  .section-title { font-size: 0.85rem; color: #C0F0FB; font-weight: 600; letter-spacing: 0.05em; margin-bottom: 1rem; }
+
+  .weather-info { display: flex; align-items: center; gap: 1rem; }
+  .weather-temp { font-size: 2.5rem; font-weight: 700; }
+  .weather-desc { color: #A8A29E; }
+  .weather-detail { color: #78716C; font-size: 0.85rem; margin-top: 0.3rem; }
+
+  .todo-item { display: flex; align-items: center; gap: 0.8rem; padding: 0.6rem 0; border-bottom: 1px solid #44403C; }
+  .todo-item:last-child { border-bottom: none; }
+  .todo-checkbox { width: 18px; height: 18px; accent-color: #C0F0FB; cursor: pointer; }
+  .todo-text { flex: 1; }
+  .todo-text.done { text-decoration: line-through; color: #78716C; }
+
+  .suggestion { background: #C0F0FB22; border: 1px solid #C0F0FB44; border-radius: 8px; padding: 0.5rem 1rem; margin-top: 0.5rem; font-size: 0.9rem; color: #C0F0FB; }
+
+  .add-form { display: flex; gap: 0.5rem; margin-top: 1rem; }
+  .add-input { flex: 1; padding: 0.6rem 1rem; border-radius: 8px; border: 1px solid #44403C; background: #1C1917; color: #F9F7F4; font-family: inherit; font-size: 0.9rem; }
+  .add-btn { padding: 0.6rem 1.2rem; border-radius: 8px; border: none; background: #C0F0FB; color: #1C1917; font-weight: 600; cursor: pointer; font-family: inherit; }
+  .add-btn:hover { background: #E0F7FC; }
+
+  .api-section { background: #44403C; border-radius: 8px; padding: 1rem; margin-top: 1rem; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: #A8A29E; }
+  .api-url { color: #C0F0FB; }
+  .error { color: #FCA5A5; }
+  .loading { color: #78716C; }
+</style>
+</head>
+<body>
+  <h1>Callable Todo</h1>
+  <p class="subtitle">당기기 + 열어주기 데모</p>
+
+  <div class="section">
+    <div class="section-title">TODAY'S WEATHER (OpenWeatherMap API)</div>
+    <div id="weather" class="loading">날씨 불러오는 중...</div>
+  </div>
+
+  <div class="section" id="suggestions-section" style="display:none;">
+    <div class="section-title">WEATHER SUGGESTIONS</div>
+    <div id="suggestions"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">TODAY'S TODOS</div>
+    <div id="todos"></div>
+    <div class="add-form">
+      <input class="add-input" id="newTodo" placeholder="할 일 추가..." onkeydown="if(event.key==='Enter')addTodo()">
+      <button class="add-btn" onclick="addTodo()">추가</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">EXTERNAL API (열어주기)</div>
+    <div class="api-section">
+      <span class="api-url">GET /api/v1/today</span><br>
+      Authorization: Bearer &lt;AUTH_TOKEN&gt;<br><br>
+      이 API를 통해 외부에서 할 일 + 날씨를 조회할 수 있습니다.
+    </div>
+  </div>
+
+<script>
+function createEl(tag, attrs, children) {
+  const el = document.createElement(tag);
+  if (attrs) Object.entries(attrs).forEach(([k, v]) => {
+    if (k === 'className') el.className = v;
+    else if (k === 'style') Object.assign(el.style, v);
+    else el.setAttribute(k, v);
+  });
+  if (typeof children === 'string') el.textContent = children;
+  else if (Array.isArray(children)) children.forEach(c => el.appendChild(c));
+  else if (children) el.appendChild(children);
+  return el;
+}
+
+async function loadWeather() {
+  const container = document.getElementById('weather');
+  try {
+    const res = await fetch('/weather');
+    const { weather, suggestions } = await res.json();
+
+    container.replaceChildren();
+    container.className = '';
+
+    if (weather.error) {
+      container.appendChild(createEl('div', { className: 'error' }, weather.error));
+      return;
+    }
+
+    const img = createEl('img', { src: 'https://openweathermap.org/img/wn/' + weather.icon + '@2x.png', width: '64', alt: weather.description });
+    const tempEl = createEl('div', { className: 'weather-temp' }, weather.temp + '\u00B0');
+    const descEl = createEl('div', { className: 'weather-desc' }, weather.city + ' \u2014 ' + weather.description);
+    const detailEl = createEl('div', { className: 'weather-detail' }, '\uC2B5\uB3C4 ' + weather.humidity + '% \u00B7 \uD48D\uC18D ' + weather.wind + 'm/s');
+    const infoDiv = createEl('div', null, [tempEl, descEl, detailEl]);
+    const row = createEl('div', { className: 'weather-info' }, [img, infoDiv]);
+    container.appendChild(row);
+
+    if (suggestions.length > 0) {
+      const sugContainer = document.getElementById('suggestions');
+      const sugSection = document.getElementById('suggestions-section');
+      sugSection.style.display = 'block';
+      sugContainer.replaceChildren();
+      suggestions.forEach(s => {
+        sugContainer.appendChild(createEl('div', { className: 'suggestion' }, s));
+      });
+    }
+  } catch (e) {
+    container.replaceChildren();
+    container.appendChild(createEl('div', { className: 'error' }, '\uC11C\uBC84 \uC5F0\uACB0 \uC2E4\uD328'));
+  }
+}
+
+async function loadTodos() {
+  const res = await fetch('/todos');
+  const todos = await res.json();
+  const container = document.getElementById('todos');
+  container.replaceChildren();
+  todos.forEach(t => {
+    const cb = createEl('input', { type: 'checkbox', className: 'todo-checkbox' });
+    if (t.done) cb.checked = true;
+    const text = createEl('span', { className: 'todo-text' + (t.done ? ' done' : '') }, t.text);
+    container.appendChild(createEl('div', { className: 'todo-item' }, [cb, text]));
+  });
+}
+
+async function addTodo() {
+  const input = document.getElementById('newTodo');
+  if (!input.value.trim()) return;
+  await fetch('/todos', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text: input.value.trim() })
+  });
+  input.value = '';
+  loadTodos();
+}
+
+loadWeather();
+loadTodos();
+</script>
+</body>
+</html>

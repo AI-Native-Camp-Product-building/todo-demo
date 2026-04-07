@@ -1,0 +1,14 @@
+{
+  "name": "callable-todo",
+  "version": "1.0.0",
+  "description": "Product Camp 3강 실습 — 당기기 + 열어주기 데모",
+  "scripts": {
+    "start": "node server.js",
+    "mcp": "node mcp-server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "dotenv": "^16.4.0",
+    "@modelcontextprotocol/sdk": "^1.12.1"
+  }
+}
