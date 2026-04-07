@@ -43,7 +43,7 @@
   <p class="subtitle">당기기 + 열어주기 데모</p>
 
   <div class="section">
-    <div class="section-title">TODAY'S WEATHER (OpenWeatherMap API)</div>
+    <div class="section-title">TODAY'S WEATHER (WeatherAPI.com)</div>
     <div id="weather" class="loading">날씨 불러오는 중...</div>
   </div>
 
@@ -98,7 +98,7 @@ async function loadWeather() {
       return;
     }
 
-    const img = createEl('img', { src: 'https://openweathermap.org/img/wn/' + weather.icon + '@2x.png', width: '64', alt: weather.description });
+    const img = createEl('img', { src: 'https:' + weather.icon, width: '64', alt: weather.description });
     const tempEl = createEl('div', { className: 'weather-temp' }, weather.temp + '\u00B0');
     const descEl = createEl('div', { className: 'weather-desc' }, weather.city + ' \u2014 ' + weather.description);
     const detailEl = createEl('div', { className: 'weather-detail' }, '\uC2B5\uB3C4 ' + weather.humidity + '% \u00B7 \uD48D\uC18D ' + weather.wind + 'm/s');
